@@ -1,0 +1,230 @@
+<html>
+  <head>
+    <title>.sm to .xdrv converter</title>
+  </head>
+  <body>
+    <style>
+      body {
+        padding: 12px;
+      }
+    </style>
+
+    <h1>.sm to .xdrv converter</h1>
+    <h2>Step 1</h2>
+    <p>Input the contents of your .sm file below. (I only tested with AV saves)</p>
+    <textarea id="smfile" name="smfile" rows="10" cols="50"></textarea><br>
+    <p>*Dance Double only. Gears on column 1 and 8 (holds only), normal columns from 2 to 7. (No support for drifts yet)</p>
+    <hr>
+    <h2>Step 2</h2>
+    <p>Fill in the form below</p>
+    <p>Information on custom charts can be found on the EX-XDRiVER GitHub page here: <a href="https://github.com/EX-XDRiVER/Chart-Documentation">Chart Documentation</a>  </p>
+    <input type="text" id="mtitle" name="mtitle">
+    <label for="mtitle">Music Title</label><br>
+
+    <input type="text" id="martist" name="martist">
+    <label for="martist">Music Artist</label><br>
+
+    <input type="text" id="maudio" name="maudio" value="audio.ogg">
+    <label for="maudio">Audio file</label><br>
+
+    <input type="text" id="mpstart" name="mpstart" value="0">
+    <label for="mpstart">Music Preview Start (in seconds)</label><br>
+
+    <input type="text" id="mplength" name="mplength" value="19">
+    <label for="mplength">Music Preview Length (in seconds)</label><br>
+
+    <input type="text" id="mvolume" name="mvolume" value="1">
+    <label for="mvolume">Music Volume</label><br>
+
+    <input type="text" id="moffset" name="moffset" value="0">
+    <label for="moffset">Music Offset (in seconds)</label><br>
+
+    <input type="text" id="jimage" name="jimage" value="jacket.png">
+    <label for="jimage">Jacket Image file</label><br>
+
+    <input type="text" id="jillu" name="jillu">
+    <label for="jillu">Jacket Illustrator</label><br>
+
+    <input type="text" id="cauthor" name="cauthor">
+    <label for="cauthor">Chart Author</label><br>
+
+    <input type="text" id="ctags" name="ctags" disabled value="0,0,0,0">
+    <label for="ctags">Chart Tags</label><br>
+
+    <input type="text" id="cboss" name="cboss" disabled value="FALSE">
+    <label for="cboss">Chart Boss</label><br>
+
+    <input type="text" id="cdiff" name="cdiff" value="BEGINNER">
+    <label for="cdiff">Chart Difficulty</label><br>
+
+    <input type="text" id="clevel" name="clevel" value="1">
+    <label for="clevel">Chart Level</label><br>
+
+    <input type="text" id="cunlock" name="cunlock">
+    <label for="cunlock">Chart Unlock file</label><br>
+
+    <input type="text" id="cdbpm" name="cdbpm" value="120">
+    <label for="cdbpm">Chart Display BPM</label><br>
+
+    <input type="text" id="cbpm" name="cbpm" value="120">
+    <label for="cbpm">Chart BPM</label><br>
+
+    <input type="text" id="cmod" name="cmod">
+    <label for="cmod">Mod file</label><br>
+
+    <input type="text" id="rpc" name="rpc" value="TRUE">
+    <label for="rpc">RPC Hidden</label><br>
+
+    <input type="text" id="sbg" name="sbg" value="default">
+    <label for="sbg">Stage Background</label><br>
+
+    <input type="text" id="keyboard" name="keyboard" value="FALSE">
+    <label for="keyboard">Keyboard Only</label><br>
+    <hr>
+    <h2>Step 3</h2>
+    <button type="button" onclick="runConvert()">Convert</button><br><br>
+    <textarea id="xdrvfile" name="xdrvfile" rows="10" cols="50"></textarea>
+    <p>Create a .xdrv file with the contents generated above</p>
+  </body>
+  <script>
+    function getAllIndexes(arr, val) {
+      var indexes = [], i = -1;
+      while ((i = arr.indexOf(val, i+1)) != -1){
+          indexes.push(i);
+      }
+      return indexes;
+    }
+
+    function runConvert() {
+      const arr = document.getElementById('smfile').value.split('\n');
+
+      const indexes = getAllIndexes(arr, ",");
+
+      // const startFile = arr.indexOf("     0,0,0,0,0:")
+      const startFile = arr.findIndex(value => /^[0-9]{8}$/.test(value))
+
+      const endFile = arr.lastIndexOf(";")
+
+      indexes.unshift(startFile)
+      indexes.push(endFile)
+
+      let xdrv = []
+
+      indexes.forEach(function (element, i) {
+        if(i < indexes.length) {
+          
+          xdrv.push(xbeat)
+          var noteCountPerMeasure = indexes[i + 1] - indexes[i] - 1
+          var noteCountPerBeat = noteCountPerMeasure / 4
+
+
+          let noteCount = 0
+          for (let index = 0; index < noteCountPerMeasure; index++) {
+            var currentIndex = element + 1 + index
+
+            var noteArray = arr[currentIndex].split('')
+
+            if(noteCount < noteCountPerBeat) {
+              var xNoteString = "" + note2note(noteArray[1]) + note2note(noteArray[2]) + note2note(noteArray[3]) + "-" + note2note(noteArray[4]) + note2note(noteArray[5]) + note2note(noteArray[6]) + "|" + note2gear(noteArray[0]) + note2gear(noteArray[7]) + "|0"
+              xdrv.push(xNoteString)
+              noteCount++
+
+            } else {
+              noteCount = 1
+              xdrv.push(xbeat)
+              var xNoteString = "" + note2note(noteArray[1]) + note2note(noteArray[2]) + note2note(noteArray[3]) + "-" + note2note(noteArray[4]) + note2note(noteArray[5]) + note2note(noteArray[6]) + "|" + note2gear(noteArray[0]) + note2gear(noteArray[7]) + "|0"
+              xdrv.push(xNoteString)
+              
+            }
+          }
+        }
+      });
+
+      const xmeta = []
+
+      xmeta.push("MUSIC_TITLE=" + document.getElementById("mtitle").value)
+      xmeta.push("MUSIC_ARTIST=" + document.getElementById("martist").value)
+      xmeta.push("MUSIC_AUDIO=" + document.getElementById("maudio").value)
+      xmeta.push("MUSIC_PREVIEW_START=" + document.getElementById("mpstart").value)
+      xmeta.push("MUSIC_PREVIEW_LENGTH=" + document.getElementById("mplength").value)
+      xmeta.push("MUSIC_VOLUME=" + document.getElementById("mvolume").value)
+      xmeta.push("MUSIC_OFFSET=" + document.getElementById("moffset").value)
+      xmeta.push("JACKET_IMAGE=" + document.getElementById("jimage").value)
+      xmeta.push("JACKET_ILLUSTRATOR=" + document.getElementById("jillu").value)
+      xmeta.push("CHART_AUTHOR=" + document.getElementById("cauthor").value)
+      xmeta.push( "CHART_TAGS=" + document.getElementById("ctags").value)
+      xmeta.push("CHART_BOSS=" + document.getElementById("cboss").value)
+      xmeta.push("CHART_DIFFICULTY=" + document.getElementById("cdiff").value)
+      xmeta.push("CHART_LEVEL=" + document.getElementById("clevel").value)
+      xmeta.push("CHART_UNLOCK=" + document.getElementById("cunlock").value)
+      xmeta.push("CHART_DISPLAY_BPM=" + document.getElementById("cdbpm").value)
+      xmeta.push("CHART_BPM=" + document.getElementById("cbpm").value)
+      xmeta.push("MODFILE_PATH=" + document.getElementById("cmod").value)
+      xmeta.push("RPC_HIDDEN=" + document.getElementById("rpc").value)
+      xmeta.push("STAGE_BACKGROUND=" + document.getElementById("sbg").value)
+      xmeta.push("KEYBOARD_ONLY=" + document.getElementById("keyboard").value)
+
+      xdrv.unshift(...xmeta)
+
+      var xdrvtextarea = document.getElementById("xdrvfile")
+      xdrvtextarea.value = ''
+      xdrvtextarea.value = xdrv.join("\n")
+    }
+
+    //// sm
+    const sEmpty = "0"
+    const sNote = "1"
+    const sHead = "2"
+    const sTail = "3"
+
+    //// xdrv
+    // Beat
+    const xbeat = "--"
+
+    // Notes
+    const xnEmpty = "0"
+    const xnTap = "1"
+    const xnHead = "2"
+    const xnTail = "4"
+
+    // Gears
+    const xgEmpty = "0"
+    const xgHead = "1"
+    const xgTail = "2"
+
+    function note2note(note) {
+      switch (note) {
+        case sEmpty:
+          return xnEmpty
+
+        case sNote:
+          return xnTap
+          
+        case sHead:
+          return xnHead
+          
+          case sTail:
+            return xnTail
+      
+        default:
+          break;
+      }
+    }
+
+    function note2gear(note) {
+      switch (note) {
+        case sEmpty:
+          return xgEmpty
+          
+        case sHead:
+          return xgHead
+          
+          case sTail:
+            return xgTail
+      
+        default:
+          break;
+      }
+    }
+  </script>
+</html>
