@@ -11,9 +11,12 @@
 
     <h1>.sm to .xdrv converter</h1>
     <h2>Step 1</h2>
-    <p>Input the contents of your .sm file below. (I only tested with AV saves)</p>
-    <textarea id="smfile" name="smfile" rows="10" cols="50"></textarea><br>
-    <p>*Dance Double only. Gears on column 1 and 8 (holds only), normal columns from 2 to 7. (No support for drifts yet)</p>
+    <p>Input the contents of your .sm file below. (This only works with 1 chart saved only)</p>
+    <textarea id="smfile" name="smfile" rows="10" cols="50"></textarea><br><br>
+    <input type="radio" name="ctype" id="ddouble"> <label for="ddouble">Dance Double (No Drifts)</label><br>
+    <input type="radio" name="ctype" id="pdouble"> <label for="pdouble">Pump Double</label>
+    <p>Dance Double: Gears on column 1 and 8 (holds only), normal columns from 2 to 7. No Drift.</p>
+    <p>Pump Double: Drifts on column 1 and 10 (holds only, make sure the hold ends and starts don't overlap), Gears on column 2 and 9 (holds only), normal columns from 3 to 8.</p>
     <hr>
     <h2>Step 2</h2>
     <p>Fill in the form below</p>
@@ -96,6 +99,90 @@
     }
 
     function runConvert() {
+      if(document.getElementById("ddouble").checked) {
+        ddouble()
+      } else if (document.getElementById("pdouble").checked) {
+        pdouble()
+      }
+    }
+
+    function pdouble() {
+      const arr = document.getElementById('smfile').value.split('\n');
+
+      const indexes = getAllIndexes(arr, ",");
+
+      // const startFile = arr.indexOf("     0,0,0,0,0:")
+      const startFile = arr.findIndex(value => /^[0-9]{10}$/.test(value))
+
+      const endFile = arr.lastIndexOf(";")
+
+      indexes.unshift(startFile - 1)
+      indexes.push(endFile)
+
+      let xdrv = []
+
+      indexes.forEach(function (element, i) {
+        if(i < indexes.length) {
+          
+          xdrv.push(xbeat)
+          var noteCountPerMeasure = indexes[i + 1] - indexes[i] - 1
+          var noteCountPerBeat = noteCountPerMeasure / 4
+
+
+          let noteCount = 0
+          for (let index = 0; index < noteCountPerMeasure; index++) {
+            var currentIndex = element + 1 + index
+
+            var noteArray = arr[currentIndex].split('')
+
+            if(noteCount < noteCountPerBeat) {
+              var xNoteString = "" + note2note(noteArray[2]) + note2note(noteArray[3]) + note2note(noteArray[4]) + "-" + note2note(noteArray[5]) + note2note(noteArray[6]) + note2note(noteArray[7]) + "|" + note2gear(noteArray[1]) + note2gear(noteArray[8]) + "|" + note2drift(noteArray[0], noteArray[9])
+              xdrv.push(xNoteString)
+              noteCount++
+
+            } else {
+              noteCount = 1
+              xdrv.push(xbeat)
+              var xNoteString = "" + note2note(noteArray[2]) + note2note(noteArray[3]) + note2note(noteArray[4]) + "-" + note2note(noteArray[5]) + note2note(noteArray[6]) + note2note(noteArray[7]) + "|" + note2gear(noteArray[1]) + note2gear(noteArray[8]) + "|" + note2drift(noteArray[0], noteArray[9])
+              xdrv.push(xNoteString)
+              
+            }
+          }
+        }
+      });
+
+      const xmeta = []
+
+      xmeta.push("MUSIC_TITLE=" + document.getElementById("mtitle").value)
+      xmeta.push("MUSIC_ARTIST=" + document.getElementById("martist").value)
+      xmeta.push("MUSIC_AUDIO=" + document.getElementById("maudio").value)
+      xmeta.push("MUSIC_PREVIEW_START=" + document.getElementById("mpstart").value)
+      xmeta.push("MUSIC_PREVIEW_LENGTH=" + document.getElementById("mplength").value)
+      xmeta.push("MUSIC_VOLUME=" + document.getElementById("mvolume").value)
+      xmeta.push("MUSIC_OFFSET=" + document.getElementById("moffset").value)
+      xmeta.push("JACKET_IMAGE=" + document.getElementById("jimage").value)
+      xmeta.push("JACKET_ILLUSTRATOR=" + document.getElementById("jillu").value)
+      xmeta.push("CHART_AUTHOR=" + document.getElementById("cauthor").value)
+      xmeta.push( "CHART_TAGS=" + document.getElementById("ctags").value)
+      xmeta.push("CHART_BOSS=" + document.getElementById("cboss").value)
+      xmeta.push("CHART_DIFFICULTY=" + document.getElementById("cdiff").value)
+      xmeta.push("CHART_LEVEL=" + document.getElementById("clevel").value)
+      xmeta.push("CHART_UNLOCK=" + document.getElementById("cunlock").value)
+      xmeta.push("CHART_DISPLAY_BPM=" + document.getElementById("cdbpm").value)
+      xmeta.push("CHART_BPM=" + document.getElementById("cbpm").value)
+      xmeta.push("MODFILE_PATH=" + document.getElementById("cmod").value)
+      xmeta.push("RPC_HIDDEN=" + document.getElementById("rpc").value)
+      xmeta.push("STAGE_BACKGROUND=" + document.getElementById("sbg").value)
+      xmeta.push("KEYBOARD_ONLY=" + document.getElementById("keyboard").value)
+
+      xdrv.unshift(...xmeta)
+
+      var xdrvtextarea = document.getElementById("xdrvfile")
+      xdrvtextarea.value = ''
+      xdrvtextarea.value = xdrv.join("\n")
+    }
+
+    function ddouble() {
       const arr = document.getElementById('smfile').value.split('\n');
 
       const indexes = getAllIndexes(arr, ",");
@@ -192,6 +279,12 @@
     const xgHead = "1"
     const xgTail = "2"
 
+    // Drifts
+    const xdEmpty = "0"
+    const xdLeft = "1"
+    const xdRight = "2"
+    const xdStop = "3"
+
     function note2note(note) {
       switch (note) {
         case sEmpty:
@@ -219,11 +312,23 @@
         case sHead:
           return xgHead
           
-          case sTail:
-            return xgTail
+        case sTail:
+          return xgTail
       
         default:
           break;
+      }
+    }
+
+    function note2drift(noteleft, noteright) {
+      if(noteleft == sEmpty && noteright == sEmpty) {
+        return xdEmpty
+      } else if (noteleft == sHead) {
+        return xdLeft
+      } else if (noteright == sHead) {
+        return xdRight
+      } else if (noteleft == sTail || noteright == sTail) {
+        return xdStop
       }
     }
   </script>
